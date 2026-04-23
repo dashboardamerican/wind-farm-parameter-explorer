@@ -3,14 +3,27 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer, Cell,
 } from 'recharts';
+import InfoTip from './InfoTip';
 
 export default function ErrorDistribution({ bins, median }) {
   if (!bins || bins.length === 0) return null;
 
   return (
     <div className="card">
-      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-700)', marginBottom: 12 }}>
-        Signed Error Distribution
+      <div className="chart-title-row">
+        <span className="chart-title">Signed Error Distribution</span>
+        <InfoTip label="About this chart">
+          One bar per farm-bin. X-axis is the <strong>signed matching-score
+          error in pp</strong> (model − actual); Y-axis is the number of farms
+          landing in that 1-pp bin.
+          <br /><br />
+          <strong>Red bars (≥ 0)</strong> = overcredited; <strong>green bars (&lt; 0)</strong>
+          = undercredited. The dashed blue line marks the fleet median.
+          <br /><br />
+          A good parameter set has a tall, narrow distribution centered on zero.
+          A distribution leaning right means systematic overcredit — risky for
+          certificate markets.
+        </InfoTip>
       </div>
       <div className="histogram-container">
         <ResponsiveContainer width="100%" height="100%">

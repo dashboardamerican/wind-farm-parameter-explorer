@@ -3,6 +3,7 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer, ZAxis,
 } from 'recharts';
+import InfoTip from './InfoTip';
 
 const DOT_COLORS = { offshore: '#4285F4', onshore: '#34A853' };
 
@@ -79,13 +80,29 @@ export default function CorrelationScatter({ farms, errors }) {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-700)' }}>
+      <div className="chart-title-row">
+        <span className="chart-title">
           Temporal Correlation vs Matching Score Error
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>
+          <InfoTip label="About this chart" align="right">
+            Each dot is one farm.
+            <br /><br />
+            <strong>X-axis — temporal r:</strong> Pearson correlation between
+            the modeled and actual hourly generation series for the year.
+            Measures hour-by-hour timing accuracy.
+            <br /><br />
+            <strong>Y-axis — signed error (pp):</strong> the farm's matching-score
+            error under the current parameters.
+            <br /><br />
+            The small "r(correlation, error)" on the right is the Pearson correlation
+            between the two axes. It's typically near zero: <strong>timing accuracy
+            and matching-score accuracy are largely independent</strong>. Matching
+            score depends on the generation <em>distribution</em> (CDF shape),
+            not hour-by-hour timing.
+          </InfoTip>
+        </span>
+        <span className="chart-corner-note">
           r(correlation, error) = {rCorr != null ? rCorr.toFixed(2) : '—'}
-        </div>
+        </span>
       </div>
       <div className="histogram-container">
         <ResponsiveContainer width="100%" height="100%">

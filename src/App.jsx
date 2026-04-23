@@ -10,6 +10,9 @@ import ErrorDistribution from './components/ErrorDistribution';
 import CorrelationScatter from './components/CorrelationScatter';
 import FarmTable from './components/FarmTable';
 import FarmDetailPanel from './components/FarmDetailPanel';
+import WelcomeModal from './components/WelcomeModal';
+
+const WELCOME_KEY = 'wfpe_welcome_seen_v1';
 
 const PRESETS = {
   Conservative: { vr: 15.0, exp: 2.0 },
@@ -37,6 +40,15 @@ export default function App() {
   const [calMonths, setCalMonths] = useState(0);
   const [correctionMode, setCorrectionMode] = useState('raw');
   const [selectedFarm, setSelectedFarm] = useState(null);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try { return !window.localStorage.getItem(WELCOME_KEY); } catch { return true; }
+  });
+
+  function closeWelcome() {
+    try { window.localStorage.setItem(WELCOME_KEY, '1'); } catch {}
+    setShowWelcome(false);
+  }
 
   const isCalibrated = calMonths > 0;
   const effectiveCorrectionMode = isCalibrated ? 'raw' : correctionMode;
@@ -101,6 +113,14 @@ export default function App() {
 
   const activeDetail = selectedFarm ? getDetail(selectedFarm.id, effectiveCorrectionMode) : null;
 
+  // Look up the currently-selected farm's error under the active parameters so
+  // the detail header tracks the sliders instead of showing a stale click-time value.
+  const activeError = useMemo(() => {
+    if (!selectedFarm || !data || !allErrors) return null;
+    const idx = data.farms.findIndex(f => f.id === selectedFarm.id);
+    return idx >= 0 ? allErrors[idx] : null;
+  }, [selectedFarm, data, allErrors]);
+
   function handlePreset(preset) {
     setActivePreset(preset.label);
     setVr(preset.vr);
@@ -122,8 +142,19 @@ export default function App() {
 
   return (
     <div className="app">
+      {showWelcome && <WelcomeModal onClose={closeWelcome} />}
       <div className="header">
-        <h1>Wind Farm Parameter Explorer</h1>
+        <div className="header-title-row">
+          <h1>Wind Farm Parameter Explorer</h1>
+          <button
+            className="help-btn"
+            onClick={() => setShowWelcome(true)}
+            aria-label="Open help"
+            title="What is this? How does it work?"
+          >
+            ?
+          </button>
+        </div>
         <div className="controls-row" style={{ marginBottom: 0 }}>
           <TypeToggle active={terrainFilter} counts={counts} onChange={setTerrainFilter} />
         </div>
@@ -185,8 +216,10 @@ export default function App() {
         <FarmDetailPanel
           farm={selectedFarm}
           detail={activeDetail}
-          error={selectedFarm.error}
+          error={activeError ?? selectedFarm.error}
           correctionMode={effectiveCorrectionMode}
+          vr={vr}
+          exp={exp}
           onClose={() => setSelectedFarm(null)}
         />
       )}

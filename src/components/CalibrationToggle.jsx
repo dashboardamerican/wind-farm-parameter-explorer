@@ -1,4 +1,5 @@
 import React from 'react';
+import InfoTip from './InfoTip';
 
 const OPTIONS = [
   { label: 'Blind', value: 0 },
@@ -14,7 +15,21 @@ export default function CalibrationToggle({ active, onChange, hasData }) {
 
   return (
     <div className="calibration-toggle">
-      <span className="calibration-label">Mode</span>
+      <span className="calibration-label">
+        Mode
+        <InfoTip label="About calibration mode">
+          <strong>Blind</strong> applies the same global (Vr, n) power curve to every
+          farm — no farm-specific data used.
+          <br /><br />
+          <strong>N-month calibration</strong> instead refits (Vr, n) for each farm
+          using N months of that farm's own metered data, then applies that
+          calibrated curve to the held-out remainder of the year. More months
+          generally means lower error, with diminishing returns past ~3 months.
+          <br /><br />
+          Sliders and presets are disabled in calibration mode because each
+          farm gets its own fitted parameters.
+        </InfoTip>
+      </span>
       <div className="calibration-pills">
         {OPTIONS.map(o => (
           <button

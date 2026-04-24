@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import InfoTip from './InfoTip';
 
 const COLUMNS = [
   { key: 'name', label: 'Farm Name', align: 'left' },
@@ -46,8 +47,22 @@ export default function FarmTable({ farms, errors, selectedFarmId, onFarmClick }
 
   return (
     <div className="card">
-      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-700)', marginBottom: 12 }}>
-        Per-Farm Detail <span style={{ fontWeight: 400, color: 'var(--gray-500)' }}>— click a row to inspect</span>
+      <div className="chart-title-row">
+        <span className="chart-title">
+          Per-Farm Detail
+          <InfoTip label="About this table">
+            Row-per-farm breakdown under the current parameters.
+            <br /><br />
+            <strong>r</strong> = temporal (hourly) correlation between modeled
+            and actual generation.{' '}
+            <strong>Error (pp)</strong> = signed matching-score error — red is
+            over-credit, green is under-credit. Click any column header to sort.
+            <br /><br />
+            <strong>Click any row</strong> to open that farm's modeled-vs-actual
+            power curve and generation CDF panel above.
+          </InfoTip>
+        </span>
+        <span className="chart-corner-note">click a row to inspect</span>
       </div>
       <div className="farm-table-wrapper">
         <table className="farm-table">

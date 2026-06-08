@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend, AreaChart, Area,
+  ResponsiveContainer, Legend, AreaChart, Area, ReferenceLine,
 } from 'recharts';
 import InfoTip from './InfoTip';
 
@@ -105,11 +105,15 @@ function CdfChart({ pcts, cdfActual, cdfModel, modelLabel }) {
   return (
     <div>
       <div className="detail-chart-title">
-        Generation CDF: Shaped vs Actual
+        Generation Shape CDF: Model vs Actual
         <InfoTip label="About the CDF" align="right">
-          Cumulative distribution of hourly capacity factor over the year —
-          sorted low to high. X-axis is the percentile; Y-axis is the CF value
-          at that percentile.
+          Cumulative distribution of hourly generation over the year, sorted
+          low to high. Both lines are divided by their own annual average, so
+          the chart compares shape rather than total annual output.
+          <br /><br />
+          A value of <strong>1.0</strong> is an average generation hour. Values
+          above 1.0 are above-average hours, not capacity factor above
+          nameplate.
           <br /><br />
           Matching-score accuracy depends on the <strong>shape of this curve</strong>,
           not on timing. If the blue (model) and red (actual) lines trace the
@@ -129,10 +133,10 @@ function CdfChart({ pcts, cdfActual, cdfModel, modelLabel }) {
             <YAxis
               domain={[0, 'auto']}
               tick={{ fontSize: 11, fill: '#5F6368' }}
-              label={{ value: 'Capacity factor', angle: -90, position: 'insideLeft', offset: 4, fontSize: 12, fill: '#5F6368' }}
+              label={{ value: 'Hourly generation / annual average', angle: -90, position: 'insideLeft', offset: 4, fontSize: 12, fill: '#5F6368' }}
             />
             <Tooltip
-              formatter={(value, name) => [value.toFixed(3), name === 'model' ? 'Shaped model' : 'Actual']}
+              formatter={(value, name) => [`${value.toFixed(2)}x avg`, name === 'model' ? 'Modeled shape' : 'Actual shape']}
               labelFormatter={(p) => `P${p}`}
               contentStyle={{ fontSize: 12, borderRadius: 6 }}
             />
@@ -141,8 +145,9 @@ function CdfChart({ pcts, cdfActual, cdfModel, modelLabel }) {
               align="right"
               height={24}
               wrapperStyle={{ fontSize: 12, paddingBottom: 4 }}
-              formatter={(value) => value === 'model' ? modelLabel : 'Actual metered'}
+              formatter={(value) => value === 'model' ? modelLabel : 'Actual shape'}
             />
+            <ReferenceLine y={1} stroke="#9AA0A6" strokeDasharray="4 4" />
             <Area type="monotone" dataKey="actual" stroke="#EA4335" fill="#EA4335" fillOpacity={0.15} strokeWidth={2} isAnimationActive={false} />
             <Area type="monotone" dataKey="model" stroke="#4285F4" fill="#4285F4" fillOpacity={0.15} strokeWidth={2} isAnimationActive={false} />
           </AreaChart>
@@ -165,18 +170,22 @@ export default function FarmDetailPanel({ farm, detail, error, correctionMode, v
     }));
   }, [detail, vr, exp]);
 
-  // Shaped-allocation model CDF: scale cf_model linearly so its weighted mean
-  // equals the actual mean CF (matches the paper's shaped_allocation), then
-  // take weighted percentiles.
+  const cdfActualNormalized = useMemo(() => {
+    if (!detail?.cdf_actual || !detail?.mean_actual_cf) return null;
+    return detail.cdf_actual.map(v => v / detail.mean_actual_cf);
+  }, [detail]);
+
+  // Shape CDF: divide the model curve by its own weighted annual average, then
+  // take weighted percentiles. This compares distribution shape without
+  // presenting annual-energy scaling as physical capacity factor.
   const cdfModel = useMemo(() => {
     if (!detail?.bins || !detail?.cdf_pcts) return null;
     const values = detail.bins.map(b => powerCurve(b.ws, vr, exp));
     const weights = detail.bins.map(b => b.n);
     const totalW = weights.reduce((s, w) => s + w, 0) || 1;
     const meanModel = values.reduce((s, v, i) => s + v * weights[i], 0) / totalW;
-    const scale = meanModel > 0 ? detail.mean_actual_cf / meanModel : 0;
-    const scaled = values.map(v => v * scale);
-    return weightedPercentiles(scaled, weights, detail.cdf_pcts);
+    const normalized = meanModel > 0 ? values.map(v => v / meanModel) : values.map(() => 0);
+    return weightedPercentiles(normalized, weights, detail.cdf_pcts);
   }, [detail, vr, exp]);
 
   if (!farm || !detail) return null;
@@ -211,9 +220,9 @@ export default function FarmDetailPanel({ farm, detail, error, correctionMode, v
         <PowerCurveChart curveData={curveData} modelLabel={modelLabel} />
         <CdfChart
           pcts={detail.cdf_pcts}
-          cdfActual={detail.cdf_actual}
+          cdfActual={cdfActualNormalized}
           cdfModel={cdfModel}
-          modelLabel={correctionMode === 'gwa' ? 'Shaped GWA-corrected model' : 'Shaped model'}
+          modelLabel={correctionMode === 'gwa' ? 'GWA-corrected model shape' : 'Modeled shape'}
         />
       </div>
     </div>
